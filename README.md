@@ -41,7 +41,7 @@ Inhaltsverzeichnis
     Setze `DRY_RUN = True` zum Testen.  
     Führe erst den **Planner**, dann den **Executor** manuell aus ("Run Script") und prüfe die Logs.
 
-## 2\. Die Script-Dateien
+## <a id="files"></a>2\. Die Script-Dateien
 
 📄
 
@@ -51,7 +51,7 @@ power\_planner.py Daily Verbindet sich mit der CKW API, lädt Strompreise, beach
 
 executor\_15min.py Alle 15 Min Der Manager. Prüft Disk-Platz, Cooldowns, Deadlines und Preise. Startet Jobs und schreibt Logs.
 
-## 3\. Konfiguration (Parameter)
+## <a id="config"></a>3\. Konfiguration (Parameter)
 
 Die Konfiguration findet im Executor-Script in der Liste `SCRIPTS_CONFIG` statt.
 
@@ -89,7 +89,7 @@ SCRIPTS\_CONFIG = \[
     }
 \]
 
-## 4\. Tier-Logik & Mathematik
+## <a id="tiers"></a>4\. Tier-Logik & Mathematik
 
 Um Preise vergleichbar zu machen, nutzt das System keine absoluten Rappen-Werte (da diese im Winter hoch und im Sommer niedrig sind), sondern **relative Tiers (Ränge)** von 1 bis 20.
 
@@ -109,7 +109,7 @@ Um Preise vergleichbar zu machen, nutzt das System keine absoluten Rappen-Werte 
 | **20** | Top 100% | Die teuersten Stunden des Tages (aber noch unter 6 Rp). |
 | **99** | Hard Cap | Preis ist höher als 6 Rp. **Ausführung Blockiert.** |
 
-## 5\. Praxis-Beispiele
+## <a id="examples"></a>5\. Praxis-Beispiele
 
 ### Beispiel A: Unraid Mover (Standard)
 
@@ -160,7 +160,7 @@ Hintergrundjob. Darf immer laufen (leise).
     "profile\_mode": "IGNORE\_TIME"
 }
 
-## 6\. 🚨 Notfall-System (Disk Full)
+## <a id="emergency"></a>6\. 🚨 Notfall-System (Disk Full)
 
 🚨 Priorität 1: Überlauf-Schutz
 
@@ -176,7 +176,7 @@ DISK\_PATH\_CHECK = "/mnt/cache"
 DISK\_FULL\_THRESHOLD = 90
 EMERGENCY\_COMMAND = "/usr/local/sbin/mover"
 
-## 7\. FAQ & Troubleshooting
+## <a id="faq"></a>7\. FAQ & Troubleshooting
 
 ### Wie setze ich das "Gedächtnis" zurück?
 
