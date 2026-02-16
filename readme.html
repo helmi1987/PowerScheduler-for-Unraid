@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unraid Power Scheduler - Handbuch v8.0</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-muted: #b0b0b0;
+            --accent-color: #f15a24; /* Unraid Orange */
+            --secondary-color: #03a9f4; /* Blue */
+            --success-color: #4caf50;
+            --warning-color: #ffa726;
+            --danger-color: #ef5350;
+            --code-bg: #263238;
+            --border-radius: 12px;
+            --border-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+            max-width: 1280px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1 { 
+            font-size: 3em; 
+            border-bottom: 4px solid var(--accent-color); 
+            padding-bottom: 20px; 
+            margin-top: 0;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+        h2 { 
+            font-size: 1.8em;
+            margin-top: 50px;
+            border-left: 6px solid var(--accent-color); 
+            padding-left: 20px; 
+            background: linear-gradient(90deg, rgba(241, 90, 36, 0.1) 0%, transparent 100%);
+            padding-top: 10px;
+            padding-bottom: 10px;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            color: #fff;
+        }
+        h3 { color: var(--secondary-color); margin-top: 30px; margin-bottom: 15px; border-bottom: 1px solid #333; display: inline-block; padding-bottom: 5px;}
+        p { color: var(--text-muted); margin-bottom: 1.2em; font-size: 1.05em; }
+        strong { color: #fff; font-weight: 600; }
+
+        /* --- FEATURES GRID --- */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+        .feature-card {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .feature-card:hover { transform: translateY(-5px); border-color: var(--secondary-color); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .feature-title { font-weight: bold; color: #fff; margin-bottom: 10px; display: block; font-size: 1.2em; display: flex; align-items: center; }
+        .feature-icon { font-size: 1.5em; margin-right: 15px; }
+
+        /* --- TOC --- */
+        .toc-container {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            border-left: 5px solid var(--secondary-color);
+            margin-bottom: 50px;
+        }
+        .toc-title { font-weight: bold; font-size: 1.2em; color: #fff; margin-bottom: 15px; display: block; }
+        .toc-list { list-style: none; padding: 0; column-count: 2; }
+        .toc-list li { margin-bottom: 10px; }
+        .toc-list a { color: var(--text-muted); text-decoration: none; transition: color 0.2s; font-size: 1.1em; }
+        .toc-list a:hover { color: var(--accent-color); text-decoration: none; padding-left: 5px; }
+
+        /* --- FILE BOXES --- */
+        .file-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .file-info { flex-grow: 1; margin-left: 20px; }
+        .file-name { font-family: 'Consolas', monospace; font-size: 1.4em; color: var(--accent-color); font-weight: bold; display: block;}
+        .file-desc { color: var(--text-muted); margin-top: 5px; display: block; }
+        .file-icon { font-size: 2em; color: #555; }
+
+        /* --- INSTALLATION STEPS --- */
+        .step-list { list-style: none; padding: 0; counter-reset: step-counter; }
+        .step-list li { 
+            margin-bottom: 20px; 
+            background: var(--card-bg); 
+            padding: 20px 20px 20px 60px;
+            border-radius: var(--border-radius); 
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+        .step-list li::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--accent-color);
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+        .step-title { font-weight: bold; color: #fff; display: block; margin-bottom: 8px; font-size: 1.2em; border-bottom: 1px solid #333; padding-bottom: 5px; }
+
+        /* --- CONFIGURATION TABLES & CODE --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            margin: 25px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        th, td { padding: 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #2c2c2c; color: var(--accent-color); text-transform: uppercase; font-size: 0.9em; letter-spacing: 1px; font-weight: 700; }
+        tr:hover { background-color: #252525; }
+        tr:last-child td { border-bottom: none; }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            color: #eceff1;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95em;
+            line-height: 1.5;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+        .code-comment { color: #78909c; font-style: italic; }
+        .code-key { color: #80cbc4; }
+        .code-string { color: #c3e88d; }
+        .code-number { color: #f78c6c; }
+
+        /* --- BADGES --- */
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 10px;}
+        .badge-req { background-color: var(--accent-color); color: white; }
+        .badge-opt { background-color: #546e7a; color: #fff; }
+        .badge-daily { background-color: #ab47bc; color: white; }
+        .badge-cron { background-color: #29b6f6; color: white; }
+        .badge-ver { background-color: var(--success-color); color: white; vertical-align: middle; }
+
+        /* --- COLLAPSIBLE --- */
+        details.main-section {
+            background-color: var(--card-bg);
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        details.main-section > summary {
+            padding: 20px;
+            cursor: pointer;
+            background-color: #252525;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: bold;
+            color: #fff;
+            font-size: 1.1em;
+        }
+        details.main-section > summary:hover { background-color: #2f2f2f; }
+        details.main-section > summary::after { content: '+'; font-size: 1.5em; color: var(--accent-color); }
+        details.main-section[open] > summary::after { content: '-'; }
+        details.main-section > summary::-webkit-details-marker { display: none; }
+        .section-content { padding: 25px; }
+
+        /* --- EMERGENCY BOX --- */
+        .emergency-box {
+            border: 2px solid var(--danger-color);
+            background: linear-gradient(135deg, rgba(239, 83, 80, 0.15) 0%, rgba(30, 30, 30, 1) 100%);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            margin-top: 40px;
+        }
+        .emergency-header { color: var(--danger-color); font-weight: bold; font-size: 1.5em; display: flex; align-items: center; margin-bottom: 15px;}
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚡ Power Scheduler <span class="badge badge-ver">v8.0 Final</span></h1>
+        <p>Das vollständige Handbuch zur intelligenten, strompreisgeführten Task-Steuerung für Unraid.</p>
+    </header>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">💰</span>Dynamische Preise</span>
+            Automatischer Abruf der <strong>CKW API</strong> (Schweiz). Wandelt CHF in Rappen um und berechnet relative "Tiers" (1-20) für den perfekten Vergleich.
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">🚀</span>Parallele Ausführung</span>
+            Der Executor startet mehrere Jobs <strong>gleichzeitig</strong>, wenn Preis und Bedingungen stimmen. Kein "Stau" mehr in der Warteschlange.
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">🔗</span>Dependency Manager</span>
+            Definiere <strong>Abhängigkeiten</strong> (<code>Groups</code> & <code>Order</code>). Job B startet erst, wenn Job A fertig ist. Ideal für Backup-Ketten.
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">🧠</span>Smart Window</span>
+            Sucht den mathematisch besten Preis im Zeitfenster (Min/Max Deadline).
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">📈</span>Self-Learning</span>
+            Lernt die Laufzeit deiner Scripte (Moving Average) für präzisere Planung.
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">🚨</span>Disk Full Protection</span>
+            Überwacht den Cache-Speicher. Bei >90% Belegung wird <strong>SOFORT</strong> der Mover gestartet und alle anderen Jobs geblockt.
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">🕒</span>Time Profiles</span>
+            Definiere Sperrzeiten (z.B. TV-Zeit 18-22 Uhr) mit Unterscheidung zwischen Werktag und Wochenende.
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">🔍</span>Smart First Run</span>
+            Scannt beim ersten Start sofort alle verfügbaren Daten (Heute+Morgen) für den optimalen Einstieg.
+        </div>
+    </div>
+
+    <div class="toc-container">
+        <span class="toc-title">Inhaltsverzeichnis</span>
+        <ul class="toc-list">
+            <li><a href="#installation">1. Installation & Einrichtung</a></li>
+            <li><a href="#files">2. Die Script-Dateien</a></li>
+            <li><a href="#config">3. Konfiguration & Parameter</a></li>
+            <li><a href="#tiers">4. Tier-Logik & Mathematik</a></li>
+            <li><a href="#examples">5. Praxis-Beispiele</a></li>
+            <li><a href="#emergency">6. Notfall-System</a></li>
+            <li><a href="#faq">7. FAQ & Troubleshooting</a></li>
+        </ul>
+    </div>
+
+    <details class="main-section" id="installation" open>
+        <summary><h2>1. Installation & Einrichtung</h2></summary>
+        <div class="section-content">
+            <ul class="step-list">
+                <li>
+                    <span class="step-title">Schritt 1: User Scripts Plugin</span>
+                    Installiere das Plugin <strong>"User Scripts"</strong> über den Unraid "Apps" Tab, falls noch nicht vorhanden.
+                </li>
+                <li>
+                    <span class="step-title">Schritt 2: Planner anlegen</span>
+                    Erstelle ein neues Script: <code>Power_Planner_Daily</code>.<br>
+                    Füge den Code aus <code>power_planner.py</code> ein.<br>
+                    Setze den Schedule auf <strong>"Daily"</strong> (oder Custom <code>0 13 * * *</code> für 13:00 Uhr).
+                </li>
+                <li>
+                    <span class="step-title">Schritt 3: Executor anlegen</span>
+                    Erstelle ein neues Script: <code>Power_Executor_15min</code>.<br>
+                    Füge den Code aus <code>executor_15min.py</code> ein.<br>
+                    Setze den Schedule auf <strong>"Custom"</strong> und trage <code>*/15 * * * *</code> ein.
+                </li>
+                <li>
+                    <span class="step-title">Schritt 4: Konfiguration & Test</span>
+                    Öffne den Executor und passe die <code>SCRIPTS_CONFIG</code> an.<br>
+                    Setze <code>DRY_RUN = True</code> zum Testen.<br>
+                    Führe erst den <strong>Planner</strong>, dann den <strong>Executor</strong> manuell aus ("Run Script") und prüfe die Logs.
+                </li>
+            </ul>
+        </div>
+    </details>
+
+    <details class="main-section" id="files">
+        <summary><h2>2. Die Script-Dateien</h2></summary>
+        <div class="section-content">
+            <div class="file-box">
+                <span class="file-icon">📄</span>
+                <div class="file-info">
+                    <span class="file-name">power_planner.py <span class="badge badge-daily">Daily</span></span>
+                    <span class="file-desc">Verbindet sich mit der CKW API, lädt Strompreise, beachtet Hard-Cap (6 Rp), berechnet Tiers (1-20) und speichert das JSON.</span>
+                </div>
+            </div>
+
+            <div class="file-box">
+                <span class="file-icon">⚙️</span>
+                <div class="file-info">
+                    <span class="file-name">executor_15min.py <span class="badge badge-cron">Alle 15 Min</span></span>
+                    <span class="file-desc">Der Manager. Prüft Disk-Platz, Cooldowns, Deadlines und Preise. Startet Jobs und schreibt Logs.</span>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <details class="main-section" id="config" open>
+        <summary><h2>3. Konfiguration (Parameter)</h2></summary>
+        <div class="section-content">
+            <p>Die Konfiguration findet im Executor-Script in der Liste <code>SCRIPTS_CONFIG</code> statt.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:20%">Parameter</th>
+                        <th style="width:10%">Typ</th>
+                        <th>Beschreibung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td>String</td>
+                        <td>Eindeutiger Name (ohne Leerzeichen).<br><em>Bsp: "Backup"</em></td>
+                    </tr>
+                    <tr>
+                        <td><code>command</code></td>
+                        <td>String</td>
+                        <td>Absoluter Pfad zum Befehl.<br><em>Bsp: "bash /mnt/user/scripts/run.sh >> /log/path 2>&1"</em></td>
+                    </tr>
+                    <tr>
+                        <td><code>min_interval_hours</code></td>
+                        <td>Int</td>
+                        <td><strong>Cooldown:</strong> Minimale Pause zwischen zwei Starts.</td>
+                    </tr>
+                    <tr>
+                        <td><code>max_interval_hours</code></td>
+                        <td>Int</td>
+                        <td><strong>Deadline:</strong> Spätestens hier MUSS gestartet werden (suche besten Preis bis dahin).</td>
+                    </tr>
+                    <tr>
+                        <td><code>max_tier</code></td>
+                        <td>Int</td>
+                        <td><strong>Preis-Limit (1-20):</strong> 1=Billigst, 20=Teuer.</td>
+                    </tr>
+                    <tr>
+                        <td><code>profile_mode</code></td>
+                        <td>String</td>
+                        <td>Verweis auf Zeit-Profil (z.B. "STRICT", "IGNORE_TIME").</td>
+                    </tr>
+                    <tr>
+                        <td><code>group</code></td>
+                        <td>String</td>
+                        <td>(Optional) Nur EIN Script pro Gruppe läuft gleichzeitig.</td>
+                    </tr>
+                    <tr>
+                        <td><code>order</code></td>
+                        <td>Int</td>
+                        <td>(Optional) Reihenfolge in der Gruppe (1 vor 2).</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Komplettes Konfigurations-Beispiel</h3>
+<pre>
+SCRIPTS_CONFIG = [
+    {
+        <span class="code-comment"># --- BASIS EINSTELLUNGEN ---</span>
+        <span class="code-key">"id"</span>: <span class="code-string">"Appdata_Backup"</span>,
+        <span class="code-key">"command"</span>: <span class="code-string">"bash /mnt/user/scripts/backup.sh >> /mnt/user/appdata/logs/backup.log 2>&1"</span>,
+        <span class="code-key">"initial_runtime_min"</span>: <span class="code-number">45</span>,  <span class="code-comment"># Schätzwert für den ersten Lauf</span>
+
+        <span class="code-comment"># --- TIMING ---</span>
+        <span class="code-key">"min_interval_hours"</span>: <span class="code-number">24</span>,   <span class="code-comment"># 1x Täglich</span>
+        <span class="code-key">"max_interval_hours"</span>: <span class="code-number">30</span>,   <span class="code-comment"># Max 6h warten auf besseren Preis</span>
+        
+        <span class="code-comment"># --- LOGIK ---</span>
+        <span class="code-key">"max_tier"</span>: <span class="code-number">10</span>,             <span class="code-comment"># Durchschnittspreis ist OK</span>
+        <span class="code-key">"profile_mode"</span>: <span class="code-string">"STRICT"</span>,   <span class="code-comment"># Beachtet TV-Sperrzeiten</span>
+        
+        <span class="code-comment"># --- ABHÄNGIGKEITEN (Optional) ---</span>
+        <span class="code-key">"group"</span>: <span class="code-string">"backup_chain"</span>,    <span class="code-comment"># Gehört zur Backup-Gruppe</span>
+        <span class="code-key">"order"</span>: <span class="code-number">1</span>                  <span class="code-comment"># Läuft als Erstes</span>
+    }
+]
+</pre>
+        </div>
+    </details>
+
+    <details class="main-section" id="tiers">
+        <summary><h2>4. Tier-Logik & Mathematik</h2></summary>
+        <div class="section-content">
+            <p>Um Preise vergleichbar zu machen, nutzt das System keine absoluten Rappen-Werte (da diese im Winter hoch und im Sommer niedrig sind), sondern <strong>relative Tiers (Ränge)</strong> von 1 bis 20.</p>
+
+            <h3>Die Berechnung</h3>
+            <ol>
+                <li>Alle Preise des Tages (00:00 - 23:45), die <strong>unter</strong> dem Hard-Cap (6 Rp) liegen, werden gesammelt.</li>
+                <li>Diese Preise werden von <strong>billig nach teuer</strong> sortiert.</li>
+                <li>Die Liste wird in 20 gleich große Teile (Quantile) unterteilt.</li>
+            </ol>
+
+            <h3>Die Bedeutung</h3>
+            <table>
+                <tr>
+                    <th>Tier</th>
+                    <th>Prozentrang</th>
+                    <th>Bedeutung</th>
+                </tr>
+                <tr>
+                    <td><strong>1</strong></td>
+                    <td>Top 5%</td>
+                    <td>Die absolut billigsten 5% des Tages.</td>
+                </tr>
+                <tr>
+                    <td><strong>5</strong></td>
+                    <td>Top 25%</td>
+                    <td>Unteres Viertel. Sehr guter Preis.</td>
+                </tr>
+                <tr>
+                    <td><strong>10</strong></td>
+                    <td>Top 50%</td>
+                    <td>Genau der Durchschnitt (Median).</td>
+                </tr>
+                <tr>
+                    <td><strong>20</strong></td>
+                    <td>Top 100%</td>
+                    <td>Die teuersten Stunden des Tages (aber noch unter 6 Rp).</td>
+                </tr>
+                <tr>
+                    <td><strong>99</strong></td>
+                    <td>Hard Cap</td>
+                    <td>Preis ist höher als 6 Rp. <strong>Ausführung Blockiert.</strong></td>
+                </tr>
+            </table>
+        </div>
+    </details>
+
+    <details class="main-section" id="examples">
+        <summary><h2>5. Praxis-Beispiele</h2></summary>
+        <div class="section-content">
+            
+            <h3>Beispiel A: Unraid Mover (Standard)</h3>
+            <p>Soll einmal täglich laufen, aber nicht zur TV-Zeit.</p>
+<pre>{
+    <span class="code-key">"id"</span>: <span class="code-string">"Mover"</span>,
+    <span class="code-key">"command"</span>: <span class="code-string">"/usr/local/sbin/mover"</span>,
+    <span class="code-key">"min_interval_hours"</span>: <span class="code-number">20</span>,
+    <span class="code-key">"max_interval_hours"</span>: <span class="code-number">48</span>,
+    <span class="code-key">"max_tier"</span>: <span class="code-number">10</span>,
+    <span class="code-key">"profile_mode"</span>: <span class="code-string">"STRICT"</span>
+}</pre>
+
+            <h3>Beispiel B: Backup Kette (Abhängigkeiten)</h3>
+            <p>Erst lokales Backup. Wenn fertig, dann (im nächsten Zyklus) Cloud Upload.</p>
+<pre>{
+    <span class="code-comment"># SCHRITT 1: Lokal</span>
+    <span class="code-key">"id"</span>: <span class="code-string">"Local_Backup"</span>,
+    <span class="code-key">"command"</span>: <span class="code-string">"bash /mnt/user/scripts/backup.sh >> /mnt/user/logs/backup.log 2>&1"</span>,
+    <span class="code-key">"min_interval_hours"</span>: <span class="code-number">24</span>,
+    <span class="code-key">"max_interval_hours"</span>: <span class="code-number">30</span>,
+    <span class="code-key">"group"</span>: <span class="code-string">"backup_chain"</span>,
+    <span class="code-key">"order"</span>: <span class="code-number">1</span>
+},
+{
+    <span class="code-comment"># SCHRITT 2: Upload (Wartet auf 1)</span>
+    <span class="code-key">"id"</span>: <span class="code-string">"Cloud_Upload"</span>,
+    <span class="code-key">"command"</span>: <span class="code-string">"bash /mnt/user/scripts/upload.sh >> /mnt/user/logs/upload.log 2>&1"</span>,
+    <span class="code-key">"min_interval_hours"</span>: <span class="code-number">24</span>,
+    <span class="code-key">"max_interval_hours"</span>: <span class="code-number">30</span>,
+    <span class="code-key">"group"</span>: <span class="code-string">"backup_chain"</span>,
+    <span class="code-key">"order"</span>: <span class="code-number">2</span>
+}</pre>
+
+            <h3>Beispiel C: Download / Cache</h3>
+            <p>Hintergrundjob. Darf immer laufen (leise).</p>
+<pre>{
+    <span class="code-key">"id"</span>: <span class="code-string">"Emby_Cache"</span>,
+    <span class="code-key">"command"</span>: <span class="code-string">"/usr/bin/python3 .../emby_cache.py"</span>,
+    <span class="code-key">"min_interval_hours"</span>: <span class="code-number">20</span>,
+    <span class="code-key">"max_interval_hours"</span>: <span class="code-number">30</span>,
+    <span class="code-key">"max_tier"</span>: <span class="code-number">5</span>,
+    <span class="code-key">"profile_mode"</span>: <span class="code-string">"IGNORE_TIME"</span>
+}</pre>
+        </div>
+    </details>
+
+    <details class="main-section" id="emergency" open>
+        <summary><h2>6. 🚨 Notfall-System (Disk Full)</h2></summary>
+        <div class="section-content">
+            <div class="emergency-box">
+                <div class="emergency-header">
+                    <span>🚨 Priorität 1: Überlauf-Schutz</span>
+                </div>
+                <p>Der Executor prüft <strong>vor jedem Lauf</strong> den freien Speicherplatz.</p>
+                <ul>
+                    <li><strong>Auslöser:</strong> Disk > <code>DISK_FULL_THRESHOLD</code> (Standard: 90%).</li>
+                    <li><strong>Reaktion:</strong> Alle normalen Jobs in der Liste werden <strong>ignoriert / übersprungen</strong>.</li>
+                    <li><strong>Aktion:</strong> Das definierte <code>EMERGENCY_COMMAND</code> wird ausgeführt.</li>
+                </ul>
+                <p><strong>Config im Script:</strong></p>
+<pre>
+DISK_PATH_CHECK = <span class="code-string">"/mnt/cache"</span>
+DISK_FULL_THRESHOLD = <span class="code-number">90</span>
+EMERGENCY_COMMAND = <span class="code-string">"/usr/local/sbin/mover"</span>
+</pre>
+            </div>
+        </div>
+    </details>
+
+    <details class="main-section" id="faq">
+        <summary><h2>7. FAQ & Troubleshooting</h2></summary>
+        <div class="section-content">
+            
+            <h3>Wie setze ich das "Gedächtnis" zurück?</h3>
+            <p>Wenn du einen sauberen "First Run" simulieren willst:</p>
+            <pre>rm /mnt/user/appdata/power_scheduler/executor_state.json</pre>
+
+            <h3>Wie teste ich sicher (Dry Run)?</h3>
+            <p>Setze im Executor-Script:</p>
+            <pre>DRY_RUN = True</pre>
+            <p>Das Script schreibt dann ausführliche Logs, führt aber keine Befehle aus und nutzt eine separate Test-Datenbank (<code>executor_state_dryrun.json</code>).</p>
+
+            <h3>Log-Meldung: "Executor Busy"?</h3>
+            <pre>[BLOCK] Executor is busy (Jobs running). Exiting.</pre>
+            <p>Das ist <strong>gut</strong>. Es bedeutet, dass ein vorheriger Job noch läuft. Das Script verhindert automatisch, dass Jobs doppelt gestartet werden.</p>
+
+            <h3>Wo sind meine Logs?</h3>
+            <p>Wenn du die Ausgabeumleitung (<code>>></code>) wie oben beschrieben nutzt, liegen die Logs in dem Ordner, den du angegeben hast (z.B. <code>/mnt/user/appdata/logs/</code>).</p>
+        </div>
+    </details>
+
+    <footer style="margin-top: 60px; text-align: center; color: #666; font-size: 0.8em; border-top: 1px solid #333; padding-top: 20px;">
+        Unraid Power Scheduler | Version 8.0 Ultimate
+    </footer>
+
+</body>
+</html>
