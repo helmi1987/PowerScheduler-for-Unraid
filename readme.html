@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unraid Power Scheduler - Handbuch v8.0</title>
+    <title>Unraid Power Scheduler - Handbuch v9.0</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -214,26 +214,26 @@
 <body>
 
     <header>
-        <h1>⚡ Power Scheduler <span class="badge badge-ver">v8.0 Final</span></h1>
+        <h1>⚡ Power Scheduler <span class="badge badge-ver">v9.0 Duration Aware</span></h1>
         <p>Das vollständige Handbuch zur intelligenten, strompreisgeführten Task-Steuerung für Unraid.</p>
     </header>
 
     <div class="feature-grid">
         <div class="feature-card">
             <span class="feature-title"><span class="feature-icon">💰</span>Dynamische Preise</span>
-            Automatischer Abruf der <strong>CKW API</strong> (Schweiz). Wandelt CHF in Rappen um und berechnet relative "Tiers" (1-20) für den perfekten Vergleich.
+            Automatischer API-Abruf (CKW). Umrechnung in Rappen, Berechnung von Preis-Tiers (1-20) und Hard-Cap Schutz.
+        </div>
+        <div class="feature-card">
+            <span class="feature-title"><span class="feature-icon">⏳</span>Smart Duration</span>
+            Berechnet den Durchschnittspreis über die <strong>gesamte Laufzeit</strong> des Jobs. Verhindert, dass lange Jobs in den Hochtarif laufen.
         </div>
         <div class="feature-card">
             <span class="feature-title"><span class="feature-icon">🚀</span>Parallele Ausführung</span>
-            Der Executor startet mehrere Jobs <strong>gleichzeitig</strong>, wenn Preis und Bedingungen stimmen. Kein "Stau" mehr in der Warteschlange.
+            Der Executor startet mehrere Jobs <strong>gleichzeitig</strong>, wenn Preis und Bedingungen stimmen.
         </div>
         <div class="feature-card">
             <span class="feature-title"><span class="feature-icon">🔗</span>Dependency Manager</span>
-            Definiere <strong>Abhängigkeiten</strong> (<code>Groups</code> & <code>Order</code>). Job B startet erst, wenn Job A fertig ist. Ideal für Backup-Ketten.
-        </div>
-        <div class="feature-card">
-            <span class="feature-title"><span class="feature-icon">🧠</span>Smart Window</span>
-            Sucht den mathematisch besten Preis im Zeitfenster (Min/Max Deadline).
+            Definiere <strong>Abhängigkeiten</strong> (<code>Groups</code> & <code>Order</code>). Job B startet erst, wenn Job A fertig ist.
         </div>
         <div class="feature-card">
             <span class="feature-title"><span class="feature-icon">📈</span>Self-Learning</span>
@@ -241,7 +241,7 @@
         </div>
         <div class="feature-card">
             <span class="feature-title"><span class="feature-icon">🚨</span>Disk Full Protection</span>
-            Überwacht den Cache-Speicher. Bei >90% Belegung wird <strong>SOFORT</strong> der Mover gestartet und alle anderen Jobs geblockt.
+            Überwacht den Cache-Speicher. Bei >90% Belegung wird <strong>SOFORT</strong> der Mover gestartet.
         </div>
         <div class="feature-card">
             <span class="feature-title"><span class="feature-icon">🕒</span>Time Profiles</span>
@@ -311,7 +311,7 @@
                 <span class="file-icon">⚙️</span>
                 <div class="file-info">
                     <span class="file-name">executor_15min.py <span class="badge badge-cron">Alle 15 Min</span></span>
-                    <span class="file-desc">Der Manager. Prüft Disk-Platz, Cooldowns, Deadlines und Preise. Startet Jobs und schreibt Logs.</span>
+                    <span class="file-desc">Der Manager. Simuliert Laufzeiten, prüft Disk-Platz, Cooldowns, Deadlines und Preise. Startet Jobs.</span>
                 </div>
             </div>
         </div>
@@ -381,7 +381,7 @@ SCRIPTS_CONFIG = [
         <span class="code-comment"># --- BASIS EINSTELLUNGEN ---</span>
         <span class="code-key">"id"</span>: <span class="code-string">"Appdata_Backup"</span>,
         <span class="code-key">"command"</span>: <span class="code-string">"bash /mnt/user/scripts/backup.sh >> /mnt/user/appdata/logs/backup.log 2>&1"</span>,
-        <span class="code-key">"initial_runtime_min"</span>: <span class="code-number">45</span>,  <span class="code-comment"># Schätzwert für den ersten Lauf</span>
+        <span class="code-key">"initial_runtime_min"</span>: <span class="code-number">45</span>,  <span class="code-comment"># WICHTIG: Schätzwert für Dauer-Optimierung</span>
 
         <span class="code-comment"># --- TIMING ---</span>
         <span class="code-key">"min_interval_hours"</span>: <span class="code-number">24</span>,   <span class="code-comment"># 1x Täglich</span>
@@ -403,7 +403,7 @@ SCRIPTS_CONFIG = [
     <details class="main-section" id="tiers">
         <summary><h2>4. Tier-Logik & Mathematik</h2></summary>
         <div class="section-content">
-            <p>Um Preise vergleichbar zu machen, nutzt das System keine absoluten Rappen-Werte (da diese im Winter hoch und im Sommer niedrig sind), sondern <strong>relative Tiers (Ränge)</strong> von 1 bis 20.</p>
+            <p>Um Preise vergleichbar zu machen, nutzt das System keine absoluten Rappen-Werte, sondern <strong>relative Tiers (Ränge)</strong> von 1 bis 20.</p>
 
             <h3>Die Berechnung</h3>
             <ol>
@@ -452,11 +452,12 @@ SCRIPTS_CONFIG = [
         <summary><h2>5. Praxis-Beispiele</h2></summary>
         <div class="section-content">
             
-            <h3>Beispiel A: Unraid Mover (Standard)</h3>
-            <p>Soll einmal täglich laufen, aber nicht zur TV-Zeit.</p>
+            <h3>Beispiel A: Unraid Mover (Smart)</h3>
+            <p>Soll einmal täglich laufen. Das System berechnet die optimale Startzeit basierend auf einer geschätzten Laufzeit von 60 Minuten.</p>
 <pre>{
     <span class="code-key">"id"</span>: <span class="code-string">"Mover"</span>,
     <span class="code-key">"command"</span>: <span class="code-string">"/usr/local/sbin/mover"</span>,
+    <span class="code-key">"initial_runtime_min"</span>: <span class="code-number">60</span>,
     <span class="code-key">"min_interval_hours"</span>: <span class="code-number">20</span>,
     <span class="code-key">"max_interval_hours"</span>: <span class="code-number">48</span>,
     <span class="code-key">"max_tier"</span>: <span class="code-number">10</span>,
@@ -497,7 +498,7 @@ SCRIPTS_CONFIG = [
         </div>
     </details>
 
-    <details class="main-section" id="emergency" open>
+    <details class="main-section" id="emergency">
         <summary><h2>6. 🚨 Notfall-System (Disk Full)</h2></summary>
         <div class="section-content">
             <div class="emergency-box">
@@ -507,7 +508,7 @@ SCRIPTS_CONFIG = [
                 <p>Der Executor prüft <strong>vor jedem Lauf</strong> den freien Speicherplatz.</p>
                 <ul>
                     <li><strong>Auslöser:</strong> Disk > <code>DISK_FULL_THRESHOLD</code> (Standard: 90%).</li>
-                    <li><strong>Reaktion:</strong> Alle normalen Jobs in der Liste werden <strong>ignoriert / übersprungen</strong>.</li>
+                    <li><strong>Reaktion:</strong> Laufende Jobs werden beendet, neue Jobs werden blockiert/übersprungen.</li>
                     <li><strong>Aktion:</strong> Das definierte <code>EMERGENCY_COMMAND</code> wird ausgeführt.</li>
                 </ul>
                 <p><strong>Config im Script:</strong></p>
@@ -543,7 +544,7 @@ EMERGENCY_COMMAND = <span class="code-string">"/usr/local/sbin/mover"</span>
     </details>
 
     <footer style="margin-top: 60px; text-align: center; color: #666; font-size: 0.8em; border-top: 1px solid #333; padding-top: 20px;">
-        Unraid Power Scheduler | Version 8.0 Ultimate
+        Unraid Power Scheduler | Version 9.0 Duration Aware
     </footer>
 
 </body>

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """
 ==============================================================================
- MASTER POWER SCRIPT - THE EXECUTOR (v5.1 - DYNAMIC WEEKEND PROFILES)
+ MASTER POWER SCRIPT - THE EXECUTOR (v9.0 - DURATION AWARE)
 ==============================================================================
 """
 
@@ -30,24 +30,18 @@ else: STATE_FILE = os.path.join(PLANNER_PATH, "executor_state.json")
 # EMERGENCY
 DISK_PATH_CHECK = "/mnt/cache"
 DISK_FULL_THRESHOLD = 90
-EMERGENCY_COMMAND = "/usr/local/sbin/mover" 
+EMERGENCY_COMMAND = ""
 
 # --- DYNAMIC TIME PROFILES ---
-# Hier definierst du verbotene Stunden [0-23].
-# Jetzt neu: Unterscheidung zwischen "STANDARD" (Mo-Fr) und "WEEKEND" (Sa/So/Feiertag).
 TIME_PROFILES = {
     "STRICT": {
-        "STANDARD": [18, 19, 20, 21, 22],      # Werktags: TV-Zeit gesperrt
-        "WEEKEND":  [12, 13, 18, 19, 20, 21]   # Wochenende: Mittagessen + Abend gesperrt
+        "STANDARD": [18, 19, 20, 21, 22],
+        "WEEKEND":  [12, 13, 18, 19, 20, 21, 22]
     },
+    "IGNORE_TIME": { "STANDARD": [], "WEEKEND": [] },
     "NIGHT_ONLY": {
-        # An allen Tagen gleich: Alles gesperrt ausser 00-06 Uhr
         "STANDARD": [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
         "WEEKEND":  [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
-    },
-    "IGNORE_TIME": {
-        "STANDARD": [],
-        "WEEKEND": []
     }
 }
 
@@ -56,9 +50,9 @@ SCRIPTS_CONFIG = [
     {
         "id": "Emby_Cache",
         "command": "/usr/bin/python3 /mnt/user/system/scripts/embycache_v2/embycache_run.py",
-        "initial_runtime_min": 15,
-        "min_interval_hours": 20,   
-        "max_interval_hours": 28,   
+        "initial_runtime_min": 30,
+        "min_interval_hours": 20,
+        "max_interval_hours": 28,
         "max_tier": 5,
         "profile_mode": "IGNORE_TIME", # Nutzt IGNORE_TIME Definition oben
         "group": "media",
@@ -117,7 +111,6 @@ def is_disk_full():
     except: return False
 
 def get_day_type(now):
-    """Liest aus dem heutigen JSON, ob WEEKEND oder STANDARD ist."""
     fpath = os.path.join(PLANNER_PATH, f"{now.strftime('%Y-%m-%d')}.json")
     if os.path.exists(fpath):
         try:
@@ -127,32 +120,23 @@ def get_day_type(now):
     return 'STANDARD'
 
 def check_profile_blocker(script_conf, now):
-    """Prüft Sperrzeiten basierend auf Wochentag."""
     mode_name = script_conf.get("profile_mode", "IGNORE_TIME")
-    
-    # 1. Welcher Tag ist heute? (STANDARD vs WEEKEND)
     day_type = get_day_type(now)
-    
-    # 2. Profil laden
     profile_def = TIME_PROFILES.get(mode_name)
-    if not profile_def: return False # Unbekanntes Profil -> Erlauben
-    
-    # 3. Stunden für den Tagestyp laden
+    if not profile_def: return False
     blocked_hours = profile_def.get(day_type, [])
-    
-    # 4. Prüfen
     if now.hour in blocked_hours:
-        log_debug(f"Profile '{mode_name}' blocks hour {now.hour} (Type: {day_type}).")
-        return True # BLOCKED
-    return False # FREE
+        log_debug(f"Profile '{mode_name}' blocks hour {now.hour} ({day_type}).")
+        return True
+    return False
 
 # ==============================================================================
-# 3. CORE LOGIC
+# 3. CORE LOGIC (DURATION AWARE)
 # ==============================================================================
 
 def load_full_timeline(current_time):
     combined = {}
-    dates = [current_time.date(), current_time.date() + datetime.timedelta(days=1)]
+    dates = [current_time.date(), current_time.date() + datetime.timedelta(days=1), current_time.date() + datetime.timedelta(days=2)]
     for d in dates:
         fpath = os.path.join(PLANNER_PATH, f"{d.strftime('%Y-%m-%d')}.json")
         if os.path.exists(fpath):
@@ -167,6 +151,49 @@ def parse_iso_key(ts_str):
         return datetime.datetime.strptime(clean, "%Y-%m-%d %H:%M:%S")
     except: return None
 
+def get_avg_price_for_duration(start_dt, duration_min, timeline):
+    """Calculates average price from start_dt over duration."""
+    total_price = 0
+    slots_count = 0
+    
+    # We check every 15 min slot
+    steps = int(math.ceil(duration_min / 15))
+    if steps < 1: steps = 1
+
+    for i in range(steps):
+        check_time = start_dt + datetime.timedelta(minutes=(i * 15))
+        # Find closest slot in timeline (exact match)
+        # Format matching the JSON keys
+        # Note: Timeline keys are ISO strings. We need to find the matching one.
+        # Efficient way: Assume timeline is dense or handle missing.
+        
+        # Simple lookup:
+        # We need to construct the key or iterate.
+        # Since exact ISO string matching is hard with seconds, we use the parsed timeline logic
+        # passed into this function would be inefficient to parse every time.
+        # -> Optimized: The timeline passed to this function should be a Dict of DT objects?
+        # No, for simplicity we iterate or fuzzy match.
+        
+        # Let's find the slot in the timeline dict
+        # Key format in timeline: "2024-05-20T13:00:00+02:00"
+        
+        found = False
+        for ts, data in timeline.items():
+            dt = parse_iso_key(ts)
+            if dt and abs((dt - check_time).total_seconds()) < 300: # 5 min tolerance
+                total_price += data['price_rp']
+                slots_count += 1
+                found = True
+                break
+        
+        if not found:
+            # If we run out of data (e.g. tomorrow night), we assume a "neutral" price (e.g. 4 Rp)
+            # or the last known price. Let's take a penalty to prefer known data.
+            total_price += 5.0 # Penalty/Average
+            slots_count += 1
+
+    return total_price / slots_count
+
 def check_optimization_logic(script_conf, state):
     s_id = script_conf['id']
     now = get_current_time()
@@ -179,6 +206,7 @@ def check_optimization_logic(script_conf, state):
     timeline = load_full_timeline(now)
     if not timeline: return True 
 
+    # Find CURRENT status
     current_slot = None
     for ts, data in timeline.items():
         dt = parse_iso_key(ts)
@@ -187,7 +215,16 @@ def check_optimization_logic(script_conf, state):
     
     if not current_slot: return True 
 
-    # 2. CHECK STATE
+    # 2. DETERMINE ESTIMATED RUNTIME
+    runtime_min = script_conf['initial_runtime_min']
+    if s_id in state and state[s_id]['avg_runtime_sec'] > 0:
+        runtime_min = int(state[s_id]['avg_runtime_sec'] / 60)
+        # Minimum sanity check: 5 min
+        if runtime_min < 5: runtime_min = 5
+    
+    log_debug(f"Optimizing for runtime: {runtime_min} min")
+
+    # 3. CHECK DEADLINE
     last_run = None
     if s_id in state and state[s_id].get("last_run"):
         last_run = datetime.datetime.fromisoformat(state[s_id]["last_run"])
@@ -207,35 +244,35 @@ def check_optimization_logic(script_conf, state):
             print("   [FORCE] Deadline exceeded!")
             return True
 
-    # 3. FIND BEST PRICE
-    future_slots = []
+    # 4. FIND BEST WINDOW (Average Cost over Duration)
+    future_starts = []
     
-    # Pre-calc Day Type for Future Check
-    # (Simplified: we assume tomorrow has same profile logic or strict enough)
-    # A perfect implementation would check day-type per future slot, 
-    # but for simplicity we assume the blocker logic applies to "now" mostly.
-    # To be precise, let's just optimize for price within the window.
+    # Calculate current Avg Cost first
+    current_avg_cost = get_avg_price_for_duration(now, runtime_min, timeline)
     
     for ts, data in timeline.items():
         dt = parse_iso_key(ts)
         if dt and now <= dt <= search_deadline:
-            # OPTIONAL: Check if future slot is blocked? 
-            # For now we assume if it's blocked later, we'll deal with it later.
-            future_slots.append({'dt': dt, 'p': data['price_rp'], 't': data['tier']})
+            # Only consider start times that are not blocked
+            if not check_profile_blocker(script_conf, dt):
+                avg_cost = get_avg_price_for_duration(dt, runtime_min, timeline)
+                future_starts.append({'dt': dt, 'avg_cost': avg_cost, 'start_price': data['price_rp'], 'tier': data['tier']})
 
-    if not future_slots: return True
-    best = min(future_slots, key=lambda x: x['p'])
+    if not future_starts: return True
     
-    log_debug(f"Compare: Now {current_slot['price_rp']} Rp vs Best {best['p']} Rp")
+    best_option = min(future_starts, key=lambda x: x['avg_cost'])
     
-    if current_slot['price_rp'] <= (best['p'] + 0.05):
+    log_debug(f"Compare: Now (Avg {current_avg_cost:.2f} Rp) vs Best Future ({best_option['dt'].strftime('%H:%M')} Avg {best_option['avg_cost']:.2f} Rp)")
+    
+    # Decision: Run if current avg cost is close enough to best possible avg cost
+    if current_avg_cost <= (best_option['avg_cost'] + 0.1):
         if current_slot['tier'] > script_conf['max_tier']:
-             log_debug(f"Best price, but Tier {current_slot['tier']} too high.")
+             log_debug(f"Best price, but Start-Tier {current_slot['tier']} too high.")
              return False
-        print("   [OPTIMAL] Starting now.")
+        print(f"   [OPTIMAL] Starting now. Est. Cost: {current_avg_cost:.2f} Rp/slot.")
         return True
     else:
-        print(f"   [WAIT] Better price at {best['dt'].strftime('%H:%M')} ({best['p']} Rp).")
+        print(f"   [WAIT] Better window at {best_option['dt'].strftime('%H:%M')} (Avg {best_option['avg_cost']:.2f} Rp).")
         return False
 
 # ==============================================================================
@@ -246,8 +283,7 @@ def main():
     prevent_double_execution()
     current_ts = get_current_time()
     day_type = get_day_type(current_ts)
-    print(f"\n--- EXECUTOR v5.1: {current_ts.strftime('%Y-%m-%d %H:%M:%S')} ({day_type}) ---")
-    
+    print(f"\n--- EXECUTOR v9.0: {current_ts.strftime('%Y-%m-%d %H:%M:%S')} ({day_type}) ---")
     if DRY_RUN: print("[DEBUG] DRY RUN ACTIVE")
 
     if is_disk_full():
@@ -263,7 +299,6 @@ def main():
 
     for job in sorted_scripts:
         print(f"\n> Checking {job['id']}...")
-        
         group = job.get('group')
         if group and group in active_groups:
             print(f"   [BLOCK] Group '{group}' is busy.")
@@ -271,7 +306,6 @@ def main():
 
         if check_optimization_logic(job, state):
             if group: active_groups.append(group)
-
             if not DRY_RUN:
                 print(f"   >>> LAUNCHING {job['id']}...")
                 try:
@@ -292,7 +326,6 @@ def main():
                     update_runtime_stats(p['id'], dur)
                     running_processes.remove(p)
             time.sleep(1)
-
     print("\n--- DONE ---")
 
 if __name__ == "__main__": main()
