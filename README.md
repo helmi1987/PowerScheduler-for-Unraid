@@ -28,7 +28,7 @@ Inhaltsverzeichnis
 *   [6\. Notfall-System](#emergency)
 *   [7\. FAQ & Troubleshooting](#faq)
 
-## <a id="installation"></a>1. Installation & Einrichtung
+## <a id="installation"></a>1\. Installation & Einrichtung
 
 *   Schritt 1: User Scripts Plugin Installiere das Plugin **"User Scripts"** über den Unraid "Apps" Tab, falls noch nicht vorhanden.
 *   Schritt 2: Planner anlegen Erstelle ein neues Script: `Power_Planner_Daily`.  
