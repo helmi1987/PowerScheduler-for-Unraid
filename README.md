@@ -1,18 +1,18 @@
-# ⚡ Power Scheduler v8.0 Final
+# ⚡ Power Scheduler v9.0 Duration Aware
 
 Das vollständige Handbuch zur intelligenten, strompreisgeführten Task-Steuerung für Unraid.
 
-💰Dynamische Preise Automatischer Abruf der **CKW API** (Schweiz). Wandelt CHF in Rappen um und berechnet relative "Tiers" (1-20) für den perfekten Vergleich.
+💰Dynamische Preise Automatischer API-Abruf (CKW). Umrechnung in Rappen, Berechnung von Preis-Tiers (1-20) und Hard-Cap Schutz.
 
-🚀Parallele Ausführung Der Executor startet mehrere Jobs **gleichzeitig**, wenn Preis und Bedingungen stimmen. Kein "Stau" mehr in der Warteschlange.
+⏳Smart Duration Berechnet den Durchschnittspreis über die **gesamte Laufzeit** des Jobs. Verhindert, dass lange Jobs in den Hochtarif laufen.
 
-🔗Dependency Manager Definiere **Abhängigkeiten** (`Groups` & `Order`). Job B startet erst, wenn Job A fertig ist. Ideal für Backup-Ketten.
+🚀Parallele Ausführung Der Executor startet mehrere Jobs **gleichzeitig**, wenn Preis und Bedingungen stimmen.
 
-🧠Smart Window Sucht den mathematisch besten Preis im Zeitfenster (Min/Max Deadline).
+🔗Dependency Manager Definiere **Abhängigkeiten** (`Groups` & `Order`). Job B startet erst, wenn Job A fertig ist.
 
 📈Self-Learning Lernt die Laufzeit deiner Scripte (Moving Average) für präzisere Planung.
 
-🚨Disk Full Protection Überwacht den Cache-Speicher. Bei >90% Belegung wird **SOFORT** der Mover gestartet und alle anderen Jobs geblockt.
+🚨Disk Full Protection Überwacht den Cache-Speicher. Bei >90% Belegung wird **SOFORT** der Mover gestartet.
 
 🕒Time Profiles Definiere Sperrzeiten (z.B. TV-Zeit 18-22 Uhr) mit Unterscheidung zwischen Werktag und Wochenende.
 
