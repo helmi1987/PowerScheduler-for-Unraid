@@ -55,7 +55,7 @@ Dependencies: Python 3 standard library only.
 2. Deletes every `YYYY-MM-DD.json` with a date before today (other files are left untouched).
 3. Targets: always **tomorrow**; **today** additionally if today's file is missing (self-healing).
 4. Fetches 00:00:00–23:59:59 of the target date from the CKW API. The UTC offset (`+01:00` / `+02:00`) is taken from the *current* local DST state.
-5. Builds the timeline (price in Rp, tier, status) and calendar metadata.
+5. Builds the timeline (price in Rp, tier, status) and calendar metadata. A slot without a price value in the API response is stored as 0.0 Rp (and therefore lands in tier 1).
 6. Writes `<STORAGE_PATH>/YYYY-MM-DD.json`.
 
 Calendar (`profile_mode` in the plan):
@@ -99,15 +99,15 @@ Decision logic (`check_optimization_logic`):
 | --- | --- | --- |
 | 0 | Current hour is in the blocked hours of the job's time profile (day type from today's plan, fallback `STANDARD`) | wait |
 | 1 | No plan data (today, +1, +2 days) available | **start** |
-| 1 | No timeline slot within the next 15 min | **start** |
+| 1 | No timeline slot starting within the next 15 min (`0 ≤ slot − now < 15 min`) | **start** |
 | 2 | Runtime estimate: `avg_runtime_sec / 60` from state (min. 5 min), otherwise `initial_runtime_min` | – |
 | 3 | No `last_run` (first run) | search window = now + 48 h |
 | 3 | Time since last run < `min_interval_hours` | wait (cooldown) |
 | 3 | Now ≥ `last_run + max_interval_hours` | **start** (`[FORCE]`, ignores price and tier) |
 | 4 | Average price over runtime for "now" and for every future slot start up to the deadline (slots blocked by the profile are skipped) | – |
 | 4 | No candidate | **start** |
-| 5 | Avg(now) ≤ best Avg + 0.1 Rp **and** current tier ≤ `max_tier` | **start** (`[OPTIMAL]`) |
-| 5 | Avg(now) ≤ best Avg + 0.1 Rp, but current tier > `max_tier` | wait |
+| 5 | Avg(now) ≤ best Avg + 0.1 Rp **and** tier of that next slot ≤ `max_tier` | **start** (`[OPTIMAL]`) |
+| 5 | Avg(now) ≤ best Avg + 0.1 Rp, but tier of that next slot > `max_tier` | wait |
 | 5 | Otherwise | wait (`[WAIT] Better window at HH:MM`) |
 
 Average price calculation: one 15-min slot per started 15 min of runtime. Slot match tolerance ±5 min. Missing slots (no plan data) count as **5.0 Rp**.
@@ -314,5 +314,7 @@ Possible causes: deadline exceeded (`[FORCE]`), no plan files available, or no t
 - Movable holidays (Easter etc.) are not detected.
 - Planner uses the DST offset of the run date for the target date; on DST switch days the request window can be off by one hour.
 - Timestamp offsets in the plan are ignored by the executor (parsed as local time).
+- The tier checked against `max_tier` is the one of the slot that starts within the next 15 min, not of the slot already running.
+- Slots without a price in the API response are stored as 0.0 Rp / tier 1.
 - While any started job is running, the lock blocks all further executor runs – including jobs of other groups and the disk check.
 - A forced start (deadline) ignores hard cap and `max_tier`, but not the time profile.
